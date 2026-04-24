@@ -3,6 +3,8 @@
 An animated split-flap (Solari) display in your browser. Type a message and
 each tile cycles through the alphabet until it lands on the right letter.
 
+![Split-flap sign animation](img/split-flap-sign-generator-1777062491233.gif)
+
 - **Configurable layout** — defaults to 2 rows × 16 columns; edit
   `config.json` to change.
 - Vertical placement is automatic:
