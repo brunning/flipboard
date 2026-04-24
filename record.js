@@ -1,21 +1,11 @@
 /* GIF export: renders the same flap animation onto an offscreen canvas,
  * frame by frame, then encodes the frames into a GIF using gif.js. */
 
-// app.js loads its sign dimensions from config.json asynchronously, so
-// we wait for the splitflap:ready event before reading window.SplitFlap.
-function whenSplitFlapReady() {
-  if (window.SplitFlap) return Promise.resolve();
-  return new Promise((resolve) =>
-    document.addEventListener("splitflap:ready", () => resolve(), { once: true }),
-  );
-}
-
-whenSplitFlapReady().then(() => {
-  const { SEQUENCE, ROWS, COLS, FLIP_DURATION_MS, wrapText, buildGrid, indexOf } =
-    window.SplitFlap;
-
+(() => {
   // Canvas / tile dimensions used for the GIF. Decoupled from the live DOM
-  // sign so the GIF always renders at a consistent size.
+  // sign so the GIF always renders at a consistent size. Sign-wide
+  // dimensions (SIGN_W / SIGN_H) are derived per-export from the current
+  // ROWS/COLS in window.SplitFlap so live layout changes are picked up.
   const TILE_W = 48;
   const TILE_H = 68;
   const SPLIT_GAP = 2; // gap between top/bottom halves
@@ -25,8 +15,13 @@ whenSplitFlapReady().then(() => {
   const PADDING = 18;
   const TILE_RADIUS = 5;
 
-  const SIGN_W = COLS * TILE_W + (COLS - 1) * TILE_GAP + PADDING * 2;
-  const SIGN_H = ROWS * TILE_H + (ROWS - 1) * ROW_GAP + PADDING * 2;
+  function signSize() {
+    const { ROWS, COLS } = window.SplitFlap;
+    return {
+      w: COLS * TILE_W + (COLS - 1) * TILE_GAP + PADDING * 2,
+      h: ROWS * TILE_H + (ROWS - 1) * ROW_GAP + PADDING * 2,
+    };
+  }
 
   const FONT_FAMILY =
     '"Helvetica Neue", "Arial Black", Arial, sans-serif';
@@ -47,6 +42,7 @@ whenSplitFlapReady().then(() => {
 
   function ensureCharCache() {
     if (charCache.size > 0) return;
+    const { SEQUENCE } = window.SplitFlap;
     for (const c of SEQUENCE) {
       const canvas = document.createElement("canvas");
       canvas.width = TILE_W;
@@ -265,9 +261,9 @@ whenSplitFlapReady().then(() => {
     drawFlap(ctx, tile.x, tile.y, state.newChar, "bottom", bottomScale);
   }
 
-  function drawSign(ctx, t, tiles) {
+  function drawSign(ctx, t, tiles, w, h) {
     ctx.fillStyle = PANEL_BG;
-    ctx.fillRect(0, 0, SIGN_W, SIGN_H);
+    ctx.fillRect(0, 0, w, h);
     for (const tile of tiles) {
       drawTile(ctx, tile, t);
     }
@@ -276,6 +272,7 @@ whenSplitFlapReady().then(() => {
   /* ─── tile layout ────────────────────────────────────────────────────── */
 
   function buildTiles(text) {
+    const { ROWS, COLS, wrapText, buildGrid, indexOf } = window.SplitFlap;
     const grid = buildGrid(wrapText(text));
     const tiles = [];
     for (let r = 0; r < ROWS; r++) {
@@ -297,6 +294,9 @@ whenSplitFlapReady().then(() => {
   function recordGif(text, { onProgress, onStatus } = {}) {
     return new Promise((resolve, reject) => {
       ensureCharCache();
+
+      const { FLIP_DURATION_MS } = window.SplitFlap;
+      const { w: SIGN_W, h: SIGN_H } = signSize();
 
       const tiles = buildTiles(text);
       const maxFlips = tiles.reduce((m, t) => Math.max(m, t.totalFlips), 0);
@@ -327,7 +327,7 @@ whenSplitFlapReady().then(() => {
         const chunkEnd = Math.min(frameCount, i + 6);
         for (; i < chunkEnd; i++) {
           const t = Math.min(i * FRAME_INTERVAL_MS, animDurationMs);
-          drawSign(ctx, t, tiles);
+          drawSign(ctx, t, tiles, SIGN_W, SIGN_H);
           const isLast = i === frameCount - 1;
           gif.addFrame(ctx, {
             delay: isLast ? HOLD_END_MS : FRAME_INTERVAL_MS,
@@ -371,10 +371,7 @@ whenSplitFlapReady().then(() => {
 
   /* ─── UI wiring ──────────────────────────────────────────────────────── */
 
-  // splitflap:ready fires from app.js's DOMContentLoaded handler, so the
-  // DOM is already parsed by the time we reach here — no need to listen
-  // for DOMContentLoaded again.
-  (() => {
+  function wireUi() {
     const exportBtn = document.getElementById("export-button");
     const inputEl = document.getElementById("message-input");
     const statusEl = document.getElementById("export-status");
@@ -429,5 +426,11 @@ whenSplitFlapReady().then(() => {
         submitBtn.disabled = false;
       }
     });
-  })();
-});
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", wireUi, { once: true });
+  } else {
+    wireUi();
+  }
+})();

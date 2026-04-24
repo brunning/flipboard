@@ -3,29 +3,46 @@
  * reaches its target letter. */
 
 const SEQUENCE = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.,!?-:/&'";
-// Sign dimensions are loaded from config.json at startup. These defaults
-// are only used if the fetch fails. See loadConfig() below.
-let ROWS = 2;
-let COLS = 16;
+// Sign dimensions can be changed live via the Layout controls on the page.
+// We persist the user's choice in localStorage so it survives reloads.
+const DEFAULT_ROWS = 2;
+const DEFAULT_COLS = 16;
+const MIN_ROWS = 1, MAX_ROWS = 12;
+const MIN_COLS = 1, MAX_COLS = 40;
+let ROWS = DEFAULT_ROWS;
+let COLS = DEFAULT_COLS;
 // Max characters a user can usefully type: ROWS full lines joined by a
 // single space character between each pair of lines.
 let MAX_INPUT = ROWS * COLS + (ROWS - 1);
 const FLIP_DURATION_MS = 70;
 const FLIP_BUFFER_MS = 8;
 
-async function loadConfig() {
+const LS_ROWS = "splitflap.rows";
+const LS_COLS = "splitflap.cols";
+
+function clamp(n, lo, hi) {
+  return Math.max(lo, Math.min(hi, n));
+}
+
+function loadStoredDimensions() {
   try {
-    const res = await fetch("config.json", { cache: "no-store" });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const cfg = await res.json();
-    if (Number.isInteger(cfg.rows) && cfg.rows > 0) ROWS = cfg.rows;
-    if (Number.isInteger(cfg.cols) && cfg.cols > 0) COLS = cfg.cols;
-  } catch (err) {
-    console.warn(
-      `[split-flap] using defaults ${ROWS}x${COLS} — could not load config.json: ${err.message}`,
-    );
+    const r = parseInt(localStorage.getItem(LS_ROWS), 10);
+    const c = parseInt(localStorage.getItem(LS_COLS), 10);
+    if (Number.isInteger(r)) ROWS = clamp(r, MIN_ROWS, MAX_ROWS);
+    if (Number.isInteger(c)) COLS = clamp(c, MIN_COLS, MAX_COLS);
+  } catch {
+    /* localStorage may be unavailable in some sandboxes; fall back to defaults */
   }
   MAX_INPUT = ROWS * COLS + (ROWS - 1);
+}
+
+function persistDimensions() {
+  try {
+    localStorage.setItem(LS_ROWS, String(ROWS));
+    localStorage.setItem(LS_COLS, String(COLS));
+  } catch {
+    /* ignore */
+  }
 }
 
 function indexOf(char) {
@@ -148,6 +165,7 @@ class Sign {
 
   build() {
     this.rootEl.innerHTML = "";
+    this.tiles = [];
     for (let r = 0; r < ROWS; r++) {
       const rowEl = document.createElement("div");
       rowEl.className = "row";
@@ -258,36 +276,68 @@ function buildGrid(lines) {
   return grid;
 }
 
-document.addEventListener("DOMContentLoaded", async () => {
-  await loadConfig();
+// Read any persisted dimensions before publishing window.SplitFlap so the
+// recorder sees the right values immediately if it asks before the form
+// is wired up.
+loadStoredDimensions();
 
-  // Publish shared state for the recorder. Done AFTER loadConfig so the
-  // recorder sees the right dimensions.
-  window.SplitFlap = {
-    SEQUENCE,
-    ROWS,
-    COLS,
-    MAX_INPUT,
-    FLIP_DURATION_MS,
-    wrapText,
-    buildGrid,
-    indexOf,
-  };
+// Shared state for the GIF recorder. Mutated in place as the user changes
+// the layout — record.js reads these fields fresh on each export.
+window.SplitFlap = {
+  SEQUENCE,
+  ROWS,
+  COLS,
+  MAX_INPUT,
+  FLIP_DURATION_MS,
+  wrapText,
+  buildGrid,
+  indexOf,
+};
 
+document.addEventListener("DOMContentLoaded", () => {
   const signEl = document.getElementById("sign");
   const formEl = document.getElementById("message-form");
   const inputEl = document.getElementById("message-input");
   const buttonEl = formEl.querySelector("button[type='submit']");
   const hintRowsEl = document.getElementById("hint-rows");
   const hintColsEl = document.getElementById("hint-cols");
-
-  if (hintRowsEl) hintRowsEl.textContent = String(ROWS);
-  if (hintColsEl) hintColsEl.textContent = String(COLS);
+  const layoutForm = document.getElementById("layout-form");
+  const rowsInput = document.getElementById("rows-input");
+  const colsInput = document.getElementById("cols-input");
 
   const sign = new Sign(signEl);
   let lastMessage = "";
 
-  inputEl.maxLength = MAX_INPUT;
+  function syncDimensionUI() {
+    inputEl.maxLength = MAX_INPUT;
+    if (inputEl.value.length > MAX_INPUT) {
+      inputEl.value = inputEl.value.slice(0, MAX_INPUT);
+    }
+    if (hintRowsEl) hintRowsEl.textContent = String(ROWS);
+    if (hintColsEl) hintColsEl.textContent = String(COLS);
+    if (rowsInput) rowsInput.value = String(ROWS);
+    if (colsInput) colsInput.value = String(COLS);
+  }
+
+  function applyLayout(newRows, newCols) {
+    const nextRows = clamp(newRows || DEFAULT_ROWS, MIN_ROWS, MAX_ROWS);
+    const nextCols = clamp(newCols || DEFAULT_COLS, MIN_COLS, MAX_COLS);
+    const changed = nextRows !== ROWS || nextCols !== COLS;
+    ROWS = nextRows;
+    COLS = nextCols;
+    MAX_INPUT = ROWS * COLS + (ROWS - 1);
+    window.SplitFlap.ROWS = ROWS;
+    window.SplitFlap.COLS = COLS;
+    window.SplitFlap.MAX_INPUT = MAX_INPUT;
+    syncDimensionUI();
+    persistDimensions();
+    if (changed) {
+      sign.build();
+      showMessage(inputEl.value);
+    }
+  }
+
+  syncDimensionUI();
 
   const showMessage = (text) => {
     sign.display(text);
@@ -307,13 +357,19 @@ document.addEventListener("DOMContentLoaded", async () => {
     showMessage(inputEl.value);
   });
 
+  if (layoutForm) {
+    layoutForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const r = parseInt(rowsInput.value, 10);
+      const c = parseInt(colsInput.value, 10);
+      applyLayout(r, c);
+    });
+  }
+
   // Welcome message on first load — truncated to whatever fits.
   const welcome = "WELCOME TO THE SPLIT-FLAP SIGN".slice(0, MAX_INPUT);
   inputEl.value = welcome;
   showMessage(welcome);
 
   window.SplitFlap.getCurrentMessage = () => lastMessage || inputEl.value;
-
-  // Tell the recorder it's safe to read window.SplitFlap and start.
-  document.dispatchEvent(new CustomEvent("splitflap:ready"));
 });

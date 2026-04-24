@@ -5,8 +5,8 @@ each tile cycles through the alphabet until it lands on the right letter.
 
 ![Split-flap sign animation](img/split-flap-sign-generator-1777062491233.gif)
 
-- **Configurable layout** — defaults to 2 rows × 16 columns; edit
-  `config.json` to change.
+- **Configurable layout** — defaults to 2 rows × 16 columns; change live
+  with the rows/columns fields under the sign.
 - Vertical placement is automatic:
   - Lines fill from the top row downward
   - Each line is horizontally centered
@@ -18,19 +18,14 @@ each tile cycles through the alphabet until it lands on the right letter.
 
 ## Customizing the sign size
 
-Edit `config.json` at the repo root:
+Use the **Layout** controls beneath the sign to set rows (1–12) and
+columns (1–40), then click **Apply**. The sign rebuilds in place, the
+input field's max length (`rows × cols + (rows − 1)`) updates, and the
+GIF export uses the new dimensions immediately. Your choice is saved to
+`localStorage`, so reloading the page brings it back.
 
-```json
-{
-  "rows": 2,
-  "cols": 16
-}
-```
-
-For example, set `"rows": 4, "cols": 24` to get a 4×24 board. Reload the
-page; the input field's max length (`rows × cols + (rows − 1)`) and the
-exported GIF's dimensions update automatically. The Slack bot reads the
-same file on startup, so changes take effect on its next deploy.
+The Slack bot has its own dimensions in `config.json` at the repo root —
+see `slack-bot/README.md`.
 
 ## Run
 
@@ -45,10 +40,11 @@ python3 -m http.server 8000
 
 ## Files
 
-- `config.json` — sign dimensions (rows, cols), shared by the web app and bot
+- `config.json` — sign dimensions (rows, cols) used by the **Slack bot only**
 - `index.html` — page structure
 - `styles.css` — split-flap visuals + flip animation keyframes
-- `app.js` — tile/sign classes, text wrapping, live DOM animation loop
+- `app.js` — tile/sign classes, text wrapping, live DOM animation loop,
+  layout controls
 - `record.js` — offscreen canvas renderer + GIF encoder
 - `vendor/gif.js`, `vendor/gif.worker.js` — GIF89a encoder
   ([gif.js](https://github.com/jnordberg/gif.js) by Johan Nordberg, MIT)
@@ -87,6 +83,7 @@ animation deterministically:
 4. Hand frames to `gif.js` workers, which encode a GIF89a blob.
 5. Trigger a download.
 
-The canvas dimensions are derived from `rows` and `cols` in `config.json`
-(at default 2×16, the GIF is 864×180). The GIF always renders at the same
-absolute size regardless of how the live sign is scaled in the viewport.
+The canvas dimensions are derived from the current rows/columns set via
+the page's Layout controls (at default 2×16, the GIF is 864×180). The
+GIF always renders at the same absolute size regardless of how the live
+sign is scaled in the viewport.

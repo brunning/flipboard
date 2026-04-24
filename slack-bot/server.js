@@ -97,7 +97,10 @@ app.command("/flipboard", async ({ command, ack, client, respond }) => {
   });
 
   try {
-    const buffer = await renderGif(v.text, `http://127.0.0.1:${PORT}/`);
+    const buffer = await renderGif(v.text, `http://127.0.0.1:${PORT}/`, {
+      rows: ROWS,
+      cols: COLS,
+    });
     await client.files.uploadV2({
       channel_id: command.channel_id,
       file: buffer,

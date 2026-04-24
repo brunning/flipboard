@@ -120,9 +120,8 @@ private (ephemeral) error message that only the requester sees.
 
 ## Customizing the sign size
 
-The sign dimensions live in `config.json` at the **repo root** (one level
-above this folder). The web app and the bot both read it, so they always
-agree on layout.
+The bot's sign dimensions live in `config.json` at the **repo root**
+(one level above this folder):
 
 ```json
 {
@@ -133,9 +132,13 @@ agree on layout.
 
 To change them: edit `config.json`, commit, and push. Railway will
 redeploy automatically and the bot's input-length validation will follow
-the new dimensions on the next start. The exported GIF will resize to
-match (e.g. a 4×24 board produces a much larger GIF; a 2×8 board a
-smaller one).
+the new dimensions on the next start. When the bot renders a GIF it
+seeds these values into the headless browser's `localStorage` before
+loading the page, so the GIF always matches `config.json` regardless of
+what dimensions the web UI was last set to.
+
+The standalone web app uses its own runtime layout controls and does
+*not* read `config.json` — they're independent.
 
 ## Deploy to Railway
 

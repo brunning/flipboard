@@ -32,12 +32,15 @@ export async function shutdownBrowser() {
  * Render a message as an animated GIF by driving the existing web app
  * with a headless Chromium tab.
  *
- * @param {string} text     The message to render.
- * @param {string} baseUrl  Where the static web app is being served, e.g.
- *                          "http://localhost:3000/".
+ * @param {string} text                   The message to render.
+ * @param {string} baseUrl                Where the static web app is being
+ *                                        served, e.g. "http://localhost:3000/".
+ * @param {object} [opts]
+ * @param {number} [opts.rows]            Sign rows to seed in the page.
+ * @param {number} [opts.cols]            Sign columns to seed in the page.
  * @returns {Promise<Buffer>} The encoded GIF bytes.
  */
-export async function renderGif(text, baseUrl) {
+export async function renderGif(text, baseUrl, { rows, cols } = {}) {
   const browser = await getBrowser();
   const ctx = await browser.newContext({ acceptDownloads: true });
   const page = await ctx.newPage();
@@ -46,13 +49,38 @@ export async function renderGif(text, baseUrl) {
   try {
     page.on("pageerror", (e) => console.error("[browser]", e.message));
 
+    // The web app reads its layout from localStorage on init, so seed it
+    // before any page script runs. This keeps the bot's config.json the
+    // single source of truth for GIFs the bot produces.
+    if (Number.isInteger(rows) && Number.isInteger(cols)) {
+      await page.addInitScript(
+        ({ rows, cols }) => {
+          try {
+            localStorage.setItem("splitflap.rows", String(rows));
+            localStorage.setItem("splitflap.cols", String(cols));
+          } catch {
+            /* ignore */
+          }
+        },
+        { rows, cols },
+      );
+    }
+
     await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
 
-    // Wait until the page's JS exposes the shared helpers — that's our
-    // signal that the renderer is ready to drive.
-    await page.waitForFunction(() => !!window.SplitFlap, null, {
-      timeout: 10_000,
-    });
+    // Wait until the page's JS exposes the shared helpers AND has picked
+    // up the seeded dimensions — that's our signal that the renderer is
+    // ready to drive.
+    await page.waitForFunction(
+      ({ expectRows, expectCols }) => {
+        const sf = window.SplitFlap;
+        if (!sf) return false;
+        if (expectRows == null) return true;
+        return sf.ROWS === expectRows && sf.COLS === expectCols;
+      },
+      { expectRows: rows ?? null, expectCols: cols ?? null },
+      { timeout: 10_000 },
+    );
 
     await page.fill("#message-input", text);
 
