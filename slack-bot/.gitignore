@@ -1,3 +1,11 @@
 node_modules/
+
+# Secrets — never commit any environment file or editor backup of one
 .env
+.env.*
+!.env.example
+*~
+*.swp
+*.swo
+
 *.log

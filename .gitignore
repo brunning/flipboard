@@ -1,5 +1,13 @@
 node_modules/
 .DS_Store
 *.log
+
+# Secrets — never commit any environment file or editor backup of one
 .env
+.env.*
+!.env.example
+*~
+*.swp
+*.swo
+
 _*.mjs
