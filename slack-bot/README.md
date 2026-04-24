@@ -111,11 +111,31 @@ appear in the channel for everyone.
 
 ## Limits enforced by the bot
 
-- **Length**: max 33 characters (2 rows × 16 columns + 1 separator).
+- **Length**: derived from the configured sign size — `rows × cols +
+  (rows − 1)`. At the default 2×16 board this is **33 characters**.
 - **Characters**: `A–Z`, `0–9`, space, and `.,!?-:/&'`.
 
 The bot uppercases input automatically and rejects anything else with a
 private (ephemeral) error message that only the requester sees.
+
+## Customizing the sign size
+
+The sign dimensions live in `config.json` at the **repo root** (one level
+above this folder). The web app and the bot both read it, so they always
+agree on layout.
+
+```json
+{
+  "rows": 2,
+  "cols": 16
+}
+```
+
+To change them: edit `config.json`, commit, and push. Railway will
+redeploy automatically and the bot's input-length validation will follow
+the new dimensions on the next start. The exported GIF will resize to
+match (e.g. a 4×24 board produces a much larger GIF; a 2×8 board a
+smaller one).
 
 ## Deploy to Railway
 

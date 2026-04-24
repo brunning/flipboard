@@ -17,7 +17,6 @@
       <input
         type="text"
         id="message-input"
-        maxlength="33"
         placeholder="Type a message..."
         spellcheck="false"
       >
@@ -31,7 +30,7 @@
 
     <p class="hint">
       Allowed characters: <span class="chips">A&ndash;Z, 0&ndash;9, .,!?&apos;-:/&amp;</span>
-      Each line holds 16 characters across 2 rows. Words wrap whole.
+      Each line holds <span id="hint-cols">16</span> characters across <span id="hint-rows">2</span> rows. Words wrap whole.
     </p>
   </main>
 

@@ -1,6 +1,7 @@
 import "dotenv/config";
 import bolt from "@slack/bolt";
 import express from "express";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { renderGif, shutdownBrowser } from "./render-gif.js";
@@ -12,11 +13,30 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const STATIC_DIR = path.resolve(__dirname, "..");
 const PORT = Number(process.env.PORT || 3000);
 
-// Mirror constants from the web app.
-const ROWS = 2;
-const COLS = 16;
-const MAX_INPUT = ROWS * COLS + (ROWS - 1); // = 33
+// Read sign dimensions from the shared config.json at the repo root.
+// The web app reads the same file, so the bot's input validation always
+// matches what the rendered GIF can actually display.
+function loadSignConfig() {
+  const defaults = { rows: 2, cols: 16 };
+  try {
+    const raw = readFileSync(path.join(STATIC_DIR, "config.json"), "utf8");
+    const cfg = JSON.parse(raw);
+    return {
+      rows: Number.isInteger(cfg.rows) && cfg.rows > 0 ? cfg.rows : defaults.rows,
+      cols: Number.isInteger(cfg.cols) && cfg.cols > 0 ? cfg.cols : defaults.cols,
+    };
+  } catch (err) {
+    console.warn(
+      `[flipboard] using default ${defaults.rows}x${defaults.cols} — could not load config.json: ${err.message}`,
+    );
+    return defaults;
+  }
+}
+
+const { rows: ROWS, cols: COLS } = loadSignConfig();
+const MAX_INPUT = ROWS * COLS + (ROWS - 1);
 const ALLOWED_RE = /^[A-Z0-9 .,!?\-:/&']*$/;
+console.log(`[flipboard] sign size: ${ROWS} rows × ${COLS} cols (max ${MAX_INPUT} chars)`);
 
 function validate(raw) {
   const text = (raw || "").trim();

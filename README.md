@@ -3,15 +3,32 @@
 An animated split-flap (Solari) display in your browser. Type a message and
 each tile cycles through the alphabet until it lands on the right letter.
 
-- **2 rows × 16 columns** of tiles (max 33 input characters)
+- **Configurable layout** — defaults to 2 rows × 16 columns; edit
+  `config.json` to change.
 - Vertical placement is automatic:
-  - 1 line → top row, centered
-  - 2 lines → both rows
+  - Lines fill from the top row downward
+  - Each line is horizontally centered
 - Word-aware wrapping — words are never split across lines (unless a single
-  word is longer than 16 chars, in which case it's hard-wrapped)
+  word is longer than `cols`, in which case it's hard-wrapped)
 - Allowed characters: `A–Z 0–9 . , ! ? - : / & '` (lowercase is uppercased,
   unsupported characters become spaces)
 - **Export the animation as an animated GIF** with the "Export GIF" button.
+
+## Customizing the sign size
+
+Edit `config.json` at the repo root:
+
+```json
+{
+  "rows": 2,
+  "cols": 16
+}
+```
+
+For example, set `"rows": 4, "cols": 24` to get a 4×24 board. Reload the
+page; the input field's max length (`rows × cols + (rows − 1)`) and the
+exported GIF's dimensions update automatically. The Slack bot reads the
+same file on startup, so changes take effect on its next deploy.
 
 ## Run
 
@@ -26,12 +43,14 @@ python3 -m http.server 8000
 
 ## Files
 
+- `config.json` — sign dimensions (rows, cols), shared by the web app and bot
 - `index.html` — page structure
 - `styles.css` — split-flap visuals + flip animation keyframes
 - `app.js` — tile/sign classes, text wrapping, live DOM animation loop
 - `record.js` — offscreen canvas renderer + GIF encoder
 - `vendor/gif.js`, `vendor/gif.worker.js` — GIF89a encoder
   ([gif.js](https://github.com/jnordberg/gif.js) by Johan Nordberg, MIT)
+- `slack-bot/` — Slack slash-command integration (see its own README)
 
 ## How the animation works
 
@@ -66,5 +85,6 @@ animation deterministically:
 4. Hand frames to `gif.js` workers, which encode a GIF89a blob.
 5. Trigger a download.
 
-The canvas dimensions are fixed (864×180) so the GIF always looks the same
-regardless of how the live sign is sized in the viewport.
+The canvas dimensions are derived from `rows` and `cols` in `config.json`
+(at default 2×16, the GIF is 864×180). The GIF always renders at the same
+absolute size regardless of how the live sign is scaled in the viewport.

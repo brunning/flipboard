@@ -1,7 +1,16 @@
 /* GIF export: renders the same flap animation onto an offscreen canvas,
  * frame by frame, then encodes the frames into a GIF using gif.js. */
 
-(() => {
+// app.js loads its sign dimensions from config.json asynchronously, so
+// we wait for the splitflap:ready event before reading window.SplitFlap.
+function whenSplitFlapReady() {
+  if (window.SplitFlap) return Promise.resolve();
+  return new Promise((resolve) =>
+    document.addEventListener("splitflap:ready", () => resolve(), { once: true }),
+  );
+}
+
+whenSplitFlapReady().then(() => {
   const { SEQUENCE, ROWS, COLS, FLIP_DURATION_MS, wrapText, buildGrid, indexOf } =
     window.SplitFlap;
 
@@ -362,7 +371,10 @@
 
   /* ─── UI wiring ──────────────────────────────────────────────────────── */
 
-  document.addEventListener("DOMContentLoaded", () => {
+  // splitflap:ready fires from app.js's DOMContentLoaded handler, so the
+  // DOM is already parsed by the time we reach here — no need to listen
+  // for DOMContentLoaded again.
+  (() => {
     const exportBtn = document.getElementById("export-button");
     const inputEl = document.getElementById("message-input");
     const statusEl = document.getElementById("export-status");
@@ -417,5 +429,5 @@
         submitBtn.disabled = false;
       }
     });
-  });
-})();
+  })();
+});

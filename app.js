@@ -3,13 +3,30 @@
  * reaches its target letter. */
 
 const SEQUENCE = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.,!?-:/&'";
-const ROWS = 2;
-const COLS = 16;
-// Max characters a user can usefully type: two full lines joined by a single
-// space that becomes the line break (16 + 1 + 16).
-const MAX_INPUT = ROWS * COLS + (ROWS - 1);
+// Sign dimensions are loaded from config.json at startup. These defaults
+// are only used if the fetch fails. See loadConfig() below.
+let ROWS = 2;
+let COLS = 16;
+// Max characters a user can usefully type: ROWS full lines joined by a
+// single space character between each pair of lines.
+let MAX_INPUT = ROWS * COLS + (ROWS - 1);
 const FLIP_DURATION_MS = 70;
 const FLIP_BUFFER_MS = 8;
+
+async function loadConfig() {
+  try {
+    const res = await fetch("config.json", { cache: "no-store" });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const cfg = await res.json();
+    if (Number.isInteger(cfg.rows) && cfg.rows > 0) ROWS = cfg.rows;
+    if (Number.isInteger(cfg.cols) && cfg.cols > 0) COLS = cfg.cols;
+  } catch (err) {
+    console.warn(
+      `[split-flap] using defaults ${ROWS}x${COLS} — could not load config.json: ${err.message}`,
+    );
+  }
+  MAX_INPUT = ROWS * COLS + (ROWS - 1);
+}
 
 function indexOf(char) {
   const idx = SEQUENCE.indexOf(char);
@@ -224,8 +241,8 @@ function wrapText(text) {
   return lines.slice(0, ROWS);
 }
 
-/** Place lines onto a 2-row, 16-col grid with horizontal centering.
- *  Single-line messages render on the top row; two-line messages fill both. */
+/** Place lines onto the configured grid with horizontal centering.
+ *  Lines fill from the top row down; unused rows stay blank. */
 function buildGrid(lines) {
   const grid = Array.from({ length: ROWS }, () => " ".repeat(COLS));
   if (lines.length === 0) return grid;
@@ -241,28 +258,35 @@ function buildGrid(lines) {
   return grid;
 }
 
-// Shared helpers exposed for the recorder script.
-window.SplitFlap = {
-  SEQUENCE,
-  ROWS,
-  COLS,
-  MAX_INPUT,
-  FLIP_DURATION_MS,
-  wrapText,
-  buildGrid,
-  indexOf,
-};
+document.addEventListener("DOMContentLoaded", async () => {
+  await loadConfig();
 
-document.addEventListener("DOMContentLoaded", () => {
+  // Publish shared state for the recorder. Done AFTER loadConfig so the
+  // recorder sees the right dimensions.
+  window.SplitFlap = {
+    SEQUENCE,
+    ROWS,
+    COLS,
+    MAX_INPUT,
+    FLIP_DURATION_MS,
+    wrapText,
+    buildGrid,
+    indexOf,
+  };
+
   const signEl = document.getElementById("sign");
   const formEl = document.getElementById("message-form");
   const inputEl = document.getElementById("message-input");
   const buttonEl = formEl.querySelector("button[type='submit']");
+  const hintRowsEl = document.getElementById("hint-rows");
+  const hintColsEl = document.getElementById("hint-cols");
+
+  if (hintRowsEl) hintRowsEl.textContent = String(ROWS);
+  if (hintColsEl) hintColsEl.textContent = String(COLS);
 
   const sign = new Sign(signEl);
   let lastMessage = "";
 
-  // Cap the input length to what the sign can actually display.
   inputEl.maxLength = MAX_INPUT;
 
   const showMessage = (text) => {
@@ -283,11 +307,13 @@ document.addEventListener("DOMContentLoaded", () => {
     showMessage(inputEl.value);
   });
 
-  // Welcome message on first load.
-  const welcome = "WELCOME TO THE SPLIT-FLAP SIGN";
+  // Welcome message on first load — truncated to whatever fits.
+  const welcome = "WELCOME TO THE SPLIT-FLAP SIGN".slice(0, MAX_INPUT);
   inputEl.value = welcome;
   showMessage(welcome);
 
-  // Expose for recorder.
   window.SplitFlap.getCurrentMessage = () => lastMessage || inputEl.value;
+
+  // Tell the recorder it's safe to read window.SplitFlap and start.
+  document.dispatchEvent(new CustomEvent("splitflap:ready"));
 });
