@@ -1,0 +1,20 @@
+{
+  "name": "splitflap-slack-bot",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Slack slash command that renders messages as animated split-flap GIFs.",
+  "scripts": {
+    "start": "node server.js",
+    "install-browser": "npx playwright install chromium"
+  },
+  "dependencies": {
+    "@slack/bolt": "^3.21.4",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0",
+    "playwright": "1.50.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

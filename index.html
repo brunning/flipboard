@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Split-Flap Sign</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Split-Flap Sign</h1>
+      <p class="subtitle">Type a message and watch it flip into place.</p>
+    </header>
+
+    <form id="message-form" autocomplete="off">
+      <input
+        type="text"
+        id="message-input"
+        maxlength="33"
+        placeholder="Type a message..."
+        spellcheck="false"
+      >
+      <button type="submit">Display</button>
+      <button type="button" id="export-button" class="secondary">Export GIF</button>
+    </form>
+
+    <div id="sign" class="sign" aria-live="polite" aria-label="Split-flap sign"></div>
+
+    <div id="export-status" class="export-status" aria-live="polite"></div>
+
+    <p class="hint">
+      Allowed characters: <span class="chips">A&ndash;Z, 0&ndash;9, .,!?&apos;-:/&amp;</span>
+      Each line holds 16 characters across 2 rows. Words wrap whole.
+    </p>
+  </main>
+
+  <script src="vendor/gif.js"></script>
+  <script src="app.js"></script>
+  <script src="record.js"></script>
+</body>
+</html>
