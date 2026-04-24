@@ -83,7 +83,6 @@ app.command("/flipboard", async ({ command, ack, client, respond }) => {
       file: buffer,
       filename: `flipboard-${Date.now()}.gif`,
       title: v.text,
-      initial_comment: `*${v.text}* — requested by <@${command.user_id}>`,
     });
   } catch (err) {
     console.error("render/upload failed", err);
