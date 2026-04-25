@@ -335,7 +335,61 @@ document.addEventListener("DOMContentLoaded", () => {
       sign.build();
       showMessage(inputEl.value);
     }
+    fitSignToViewport();
   }
+
+  // Below this tile width characters get hard to read, so we'd rather let
+  // the sign overflow and scroll than crush it any further. 14px is the
+  // smallest that still keeps the default 16-column board readable on the
+  // narrowest common phones (~320px viewport).
+  const MIN_TILE_W = 14;
+
+  function fitSignToViewport() {
+    if (!signEl) return;
+    // Clear any prior override so we can measure the natural breakpoint
+    // tile size for the current viewport.
+    signEl.style.removeProperty("--tile-w");
+    signEl.style.removeProperty("--tile-h");
+
+    const rootCs = getComputedStyle(document.documentElement);
+    const natTileW = parseFloat(rootCs.getPropertyValue("--tile-w"));
+    const natTileH = parseFloat(rootCs.getPropertyValue("--tile-h"));
+    const tileGap = parseFloat(rootCs.getPropertyValue("--tile-gap"));
+    if (!natTileW || !natTileH) return;
+
+    const signCs = getComputedStyle(signEl);
+    const padX =
+      parseFloat(signCs.paddingLeft) + parseFloat(signCs.paddingRight);
+    const borderX =
+      parseFloat(signCs.borderLeftWidth) + parseFloat(signCs.borderRightWidth);
+
+    const main = signEl.parentElement;
+    const mainCs = main ? getComputedStyle(main) : null;
+    const mainPad = mainCs
+      ? parseFloat(mainCs.paddingLeft) + parseFloat(mainCs.paddingRight)
+      : 0;
+
+    // 4px fudge so we never sit exactly flush with the viewport edge.
+    const avail = document.documentElement.clientWidth - mainPad - 4;
+    const totalGap = (COLS - 1) * tileGap;
+    const intrinsic = COLS * natTileW + totalGap + padX + borderX;
+    if (intrinsic <= avail) return;
+
+    const targetTileW = Math.floor((avail - totalGap - padX - borderX) / COLS);
+    if (targetTileW < MIN_TILE_W) return; // accept overflow scrolling
+    const targetTileH = Math.round(targetTileW * (natTileH / natTileW));
+    signEl.style.setProperty("--tile-w", `${targetTileW}px`);
+    signEl.style.setProperty("--tile-h", `${targetTileH}px`);
+  }
+
+  let resizeRaf = 0;
+  window.addEventListener("resize", () => {
+    if (resizeRaf) return;
+    resizeRaf = requestAnimationFrame(() => {
+      resizeRaf = 0;
+      fitSignToViewport();
+    });
+  });
 
   syncDimensionUI();
 
@@ -370,6 +424,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const welcome = "WELCOME TO THE SPLIT-FLAP SIGN".slice(0, MAX_INPUT);
   inputEl.value = welcome;
   showMessage(welcome);
+  fitSignToViewport();
 
   window.SplitFlap.getCurrentMessage = () => lastMessage || inputEl.value;
 });
