@@ -298,6 +298,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const signEl = document.getElementById("sign");
   const formEl = document.getElementById("message-form");
   const inputEl = document.getElementById("message-input");
+  const clearBtn = document.getElementById("clear-input");
   const buttonEl = formEl.querySelector("button[type='submit']");
   const hintRowsEl = document.getElementById("hint-rows");
   const hintColsEl = document.getElementById("hint-cols");
@@ -411,6 +412,19 @@ document.addEventListener("DOMContentLoaded", () => {
     showMessage(inputEl.value);
   });
 
+  function syncClearBtn() {
+    if (!clearBtn) return;
+    clearBtn.hidden = inputEl.value.length === 0;
+  }
+  inputEl.addEventListener("input", syncClearBtn);
+  if (clearBtn) {
+    clearBtn.addEventListener("click", () => {
+      inputEl.value = "";
+      syncClearBtn();
+      inputEl.focus();
+    });
+  }
+
   if (layoutForm) {
     layoutForm.addEventListener("submit", (e) => {
       e.preventDefault();
@@ -420,10 +434,11 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Welcome message on first load — truncated to whatever fits.
+  // Welcome message on first load — input field stays empty so the user
+  // can just start typing, but the sign displays the welcome.
   const welcome = "WELCOME TO THE SPLIT-FLAP SIGN".slice(0, MAX_INPUT);
-  inputEl.value = welcome;
   showMessage(welcome);
+  syncClearBtn();
   fitSignToViewport();
 
   window.SplitFlap.getCurrentMessage = () => lastMessage || inputEl.value;

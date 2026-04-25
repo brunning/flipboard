@@ -94,9 +94,16 @@ h1.logo img {
   width: min(640px, 95vw);
 }
 
+.input-wrap {
+  position: relative;
+  flex: 1;
+  display: flex;
+}
+
 #message-input {
   flex: 1;
-  padding: 12px 16px;
+  width: 100%;
+  padding: 12px 38px 12px 16px;
   border: 1px solid #262932;
   background: #14161c;
   color: var(--char);
@@ -116,6 +123,34 @@ h1.logo img {
 #message-input::placeholder {
   color: #5b6070;
 }
+
+.clear-btn {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: #2a2d36;
+  color: #c9cdd6;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.clear-btn:hover {
+  background: #3a3e4a;
+  color: #fff;
+}
+
+.clear-btn[hidden] { display: none; }
 
 button[type="submit"] {
   padding: 12px 22px;
@@ -339,28 +374,22 @@ button.secondary:disabled { opacity: 0.5; cursor: not-allowed; }
   align-items: center;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 10px;
+  gap: 6px;
   font-size: 12px;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   color: var(--text-dim);
-}
-
-.layout-form .layout-label {
-  text-transform: uppercase;
-  letter-spacing: 0.18em;
-  color: var(--accent);
-  font-size: 11px;
 }
 
 .layout-form label {
   text-transform: uppercase;
   font-size: 11px;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.08em;
+  padding-left: 2px;
 }
 
 .layout-form input[type="number"] {
-  width: 64px;
-  padding: 6px 8px;
+  width: 52px;
+  padding: 6px 6px;
   border: 1px solid #262932;
   background: #14161c;
   color: var(--char);
@@ -369,7 +398,14 @@ button.secondary:disabled { opacity: 0.5; cursor: not-allowed; }
   font-size: 14px;
   text-align: center;
   outline: none;
+  -moz-appearance: textfield;
   transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.layout-form input[type="number"]::-webkit-outer-spin-button,
+.layout-form input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 .layout-form input[type="number"]:focus {
@@ -378,8 +414,9 @@ button.secondary:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 
 .layout-form button.secondary {
-  padding: 6px 14px;
+  padding: 6px 12px;
   font-size: 11px;
+  letter-spacing: 0.08em;
 }
 
 .hint {
@@ -424,6 +461,20 @@ button.secondary:disabled { opacity: 0.5; cursor: not-allowed; }
     --tile-radius: 4px;
   }
   .sign { padding: 10px; border-radius: 10px; }
+
+  /* Stack the message form vertically — input on top, Display centered
+     beneath at its natural desktop size. */
+  #message-form {
+    flex-direction: column;
+    align-items: center;
+    width: min(420px, 95vw);
+  }
+  #message-form .input-wrap {
+    width: 100%;
+  }
+  #message-form button[type="submit"] {
+    width: auto;
+  }
 }
 
 @media (max-width: 460px) {

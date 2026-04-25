@@ -399,7 +399,9 @@
       busy = true;
       exportBtn.disabled = true;
       submitBtn.disabled = true;
-      const text = inputEl.value;
+      // Fall back to the message currently displayed on the sign when the
+      // input field is empty (e.g. fresh page load, user cleared it).
+      const text = inputEl.value || window.SplitFlap.getCurrentMessage?.() || "";
 
       try {
         renderProgress("Rendering frames", 0);

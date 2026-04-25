@@ -15,22 +15,22 @@
     </header>
 
     <form id="message-form" autocomplete="off">
-      <input
-        type="text"
-        id="message-input"
-        placeholder="Type a message..."
-        spellcheck="false"
-      >
+      <div class="input-wrap">
+        <input
+          type="text"
+          id="message-input"
+          placeholder="Type a message..."
+          spellcheck="false"
+        >
+        <button
+          type="button"
+          id="clear-input"
+          class="clear-btn"
+          aria-label="Clear input"
+          hidden
+        >&times;</button>
+      </div>
       <button type="submit">Display</button>
-    </form>
-
-    <form id="layout-form" class="layout-form" autocomplete="off">
-      <span class="layout-label">Layout</span>
-      <label for="rows-input">Rows</label>
-      <input type="number" id="rows-input" min="1" max="12" step="1" inputmode="numeric">
-      <label for="cols-input">Columns</label>
-      <input type="number" id="cols-input" min="1" max="40" step="1" inputmode="numeric">
-      <button type="submit" class="secondary">Apply</button>
     </form>
 
     <div id="sign" class="sign" aria-live="polite" aria-label="Split-flap sign"></div>
@@ -38,6 +38,14 @@
     <div class="export-row">
       <button type="button" id="export-button" class="secondary">Export GIF</button>
     </div>
+
+    <form id="layout-form" class="layout-form" autocomplete="off">
+      <label for="rows-input">Rows</label>
+      <input type="number" id="rows-input" min="1" max="12" step="1" inputmode="numeric">
+      <label for="cols-input">Cols</label>
+      <input type="number" id="cols-input" min="1" max="40" step="1" inputmode="numeric">
+      <button type="submit" class="secondary">Apply</button>
+    </form>
 
     <div id="export-status" class="export-status" aria-live="polite"></div>
 
